@@ -6,7 +6,7 @@ I was hired by a company called **Obsidian** to design and build its IT infrastr
 
 My responsibility was to create a structured, secure and manageable Windows environment capable of supporting the company’s users, departments, authentication, file access, administration and day-to-day IT operations.
 
-The environment was built using Azure virtual machines to provide the underlying compute platform, while the Windows infrastructure itself was designed and managed as a traditional business server environment.
+The environment was built using Microsoft Azure virtual machines to provide the underlying compute platform, while the Windows infrastructure itself was designed and managed as a traditional business server environment.
 
 The project covers the full infrastructure build, including:
 
@@ -26,8 +26,7 @@ The project covers the full infrastructure build, including:
 - Monitoring
 - PowerShell administration
 - Infrastructure troubleshooting
-
-The aim was to build an environment that could be managed and supported in a structured way, while applying principles such as least privilege, role-based access and separation between standard and administrative accounts.
+- Least-privilege access control
 
 ---
 
@@ -39,30 +38,63 @@ Obsidian is organised into four main departments:
 
 The IT team is responsible for supporting users and managing the company infrastructure.
 
-#### System Administrators
+#### Domain Administrator
 
-- Anil Barot
-- Daniel Reed
+**Anil Barot**
 
-The System Administrators use separate standard and privileged accounts.
+Normal account:
 
-Privileged responsibilities include:
+`anil.barot`
+
+Privileged account:
+
+`adm.anil.barot`
+
+The privileged account is used for domain-level administration, including:
 
 - Active Directory administration
+- Domain Controller administration
 - DNS management
 - Group Policy administration
-- Windows Server administration
-- File server management
+- Domain-wide security changes
+- Privileged user and group management
+- Server administration
 - RDP access to authorised infrastructure
 - PowerShell administration
 - Infrastructure troubleshooting
-- User and group administration
-- Security and permissions management
+
+#### Server Administrator
+
+**Daniel Reed**
+
+Normal account:
+
+`daniel.reed`
+
+Privileged account:
+
+`adm.daniel.reed`
+
+The privileged account is used for server-level administration, including:
+
+- Member server administration
+- File server administration
+- Windows service management
+- RDP access to authorised servers
+- Server troubleshooting
+- Server-level PowerShell administration
+
+Daniel does not have unrestricted Domain Administrator access.
 
 #### Service Desk
 
-- Maya Patel
-- Aaron Smith
+**Maya Patel**
+
+`maya.patel`
+
+**Aaron Smith**
+
+`aaron.smith`
 
 The Service Desk team has delegated permissions for routine user administration, including:
 
@@ -72,9 +104,12 @@ The Service Desk team has delegated permissions for routine user administration,
 - Updating user details
 - Managing approved group membership
 - Disabling accounts
-- Supporting new starters and leavers
+- Supporting new starters
+- Supporting leavers and offboarding
 
-Service Desk staff do not have unrestricted Domain Administrator access.
+Service Desk staff do not have unrestricted Domain Administrator or server administration access.
+
+---
 
 ### Finance
 
@@ -84,6 +119,8 @@ Service Desk staff do not have unrestricted Domain Administrator access.
 
 Finance users have access to department-specific resources and file shares.
 
+---
+
 ### Human Resources
 
 - James Taylor
@@ -91,6 +128,8 @@ Finance users have access to department-specific resources and file shares.
 - Olivia Moore
 
 HR users have access to department-specific resources and permissions.
+
+---
 
 ### Sales
 
@@ -104,7 +143,7 @@ Sales users have access to department-specific resources and mapped drives.
 
 ## Infrastructure Design
 
-The Windows environment consists of four core systems:
+The Windows environment consists of four core systems.
 
 ### DC01
 
@@ -143,8 +182,8 @@ Windows client used to validate:
 - Group Policy
 - Mapped drives
 - File permissions
-- Service Desk access
 - Standard user access
+- Service Desk access
 
 ---
 
@@ -204,6 +243,16 @@ NetBIOS domain name:
 - Workstations
 - Admin Accounts
 
+### OU Purpose
+
+- `IT` — normal IT staff accounts
+- `Finance` — Finance users
+- `HR` — HR users
+- `Sales` — Sales users
+- `Servers` — member servers such as `FS01`
+- `Workstations` — client devices such as `CLIENT01`
+- `Admin Accounts` — privileged administrator accounts
+
 ### Computer Placement
 
 The built-in `Domain Controllers` OU contains:
@@ -211,11 +260,11 @@ The built-in `Domain Controllers` OU contains:
 - `DC01`
 - `DC02`
 
-The custom `Servers` OU contains member servers such as:
+The custom `Servers` OU contains:
 
 - `FS01`
 
-The custom `Workstations` OU contains client devices such as:
+The custom `Workstations` OU contains:
 
 - `CLIENT01`
 
@@ -244,49 +293,115 @@ The environment uses security groups and delegated administration to provide acc
 
 ### Standard IT Accounts
 
-System Administrators use normal accounts for everyday IT activity.
+Normal IT accounts are used for everyday activity.
 
 Examples:
 
 - `anil.barot`
 - `daniel.reed`
+- `maya.patel`
+- `aaron.smith`
 
-### Privileged Administrator Accounts
+These accounts are not used for unrestricted privileged administration.
 
-Separate privileged accounts are used for elevated administrative tasks.
+---
 
-Examples:
+### Domain Administrator
 
-- `adm.anil.barot`
-- `adm.daniel.reed`
+Anil Barot uses the privileged account:
 
-These accounts are used for:
+`adm.anil.barot`
+
+This account is a member of:
+
+- `Domain Admins`
+- `GG-Server-Admins`
+- `GG-RDP-Servers`
+
+This provides the required access for:
 
 - Domain administration
+- Domain Controller administration
+- DNS management
+- Group Policy administration
+- Domain-wide security changes
 - Server administration
-- DNS
-- Group Policy
-- File services
 - RDP
 - Privileged PowerShell administration
 
+---
+
+### Server Administrator
+
+Daniel Reed uses the privileged account:
+
+`adm.daniel.reed`
+
+This account is a member of:
+
+- `GG-Server-Admins`
+- `GG-RDP-Servers`
+
+Daniel is not a member of:
+
+`Domain Admins`
+
+This allows server administration to be separated from unrestricted domain administration.
+
+---
+
 ### Service Desk Accounts
 
-Service Desk users operate using delegated permissions rather than Domain Administrator access.
-
-Examples:
+Service Desk users:
 
 - `maya.patel`
 - `aaron.smith`
 
-Their delegated responsibilities include:
+are members of:
+
+`GG-ServiceDesk`
+
+They receive delegated permissions for routine user administration.
+
+Their responsibilities include:
 
 - New starter creation
 - Password resets
 - Account unlocks
 - Routine account changes
 - Approved group membership management
-- User disablement and offboarding support
+- User disablement
+- Offboarding support
+
+They do not receive unrestricted Domain Administrator or server administration rights.
+
+---
+
+## Least-Privilege Model
+
+The IT access model separates administrative responsibilities into three levels:
+
+### Domain Administration
+
+`adm.anil.barot`
+
+Full domain-level administrative access.
+
+### Server Administration
+
+`adm.daniel.reed`
+
+Administration of authorised member servers without unrestricted domain-wide access.
+
+### Service Desk
+
+`maya.patel`
+
+`aaron.smith`
+
+Delegated user-management permissions only.
+
+This separation helps ensure users only receive the level of access required for their responsibilities.
 
 ---
 
@@ -306,11 +421,17 @@ Planned shares include:
 
 `\\FS01\Public`
 
-Access is controlled using Active Directory security groups, NTFS permissions and SMB share permissions.
+Access is controlled using:
+
+- Active Directory security groups
+- NTFS permissions
+- SMB share permissions
 
 Example:
 
-`GG-Finance-Users` receives access to the Finance share while users from other departments are restricted.
+`GG-Finance-Users`
+
+receives access to the Finance share while users from other departments are restricted.
 
 ---
 
@@ -334,6 +455,54 @@ Example mapped drives:
 - HR — `H:` → `\\FS01\HR`
 - Sales — `S:` → `\\FS01\Sales`
 
+Domain-wide Group Policy administration is performed using the Domain Administrator account.
+
+---
+
+## Remote Administration
+
+Remote administration is controlled according to role.
+
+### Domain Administrator
+
+`adm.anil.barot`
+
+Can administer:
+
+- `DC01`
+- `DC02`
+- `FS01`
+
+using tools including:
+
+- RDP
+- Server Manager
+- Active Directory Users and Computers
+- DNS Manager
+- Group Policy Management
+- PowerShell
+
+### Server Administrator
+
+`adm.daniel.reed`
+
+Can administer authorised member servers such as:
+
+- `FS01`
+
+using:
+
+- RDP
+- Server Manager
+- PowerShell
+- Windows administrative tools
+
+Daniel does not automatically receive unrestricted Domain Controller administration.
+
+### Service Desk
+
+Maya and Aaron use delegated Active Directory tools for routine support tasks and do not receive unrestricted server RDP access.
+
 ---
 
 ## Backup and Recovery
@@ -346,13 +515,17 @@ The environment includes backup and recovery exercises covering:
 - Deleted file restoration
 - Recovery testing
 
-A key objective is to demonstrate the difference between backup, recovery and temporary snapshot-style protection.
+A key objective is to demonstrate the difference between:
+
+- Backup
+- Restore
+- VM snapshot/checkpoint concepts
 
 ---
 
 ## Monitoring and Administration
 
-Server health and administration will be performed using tools including:
+Server health and administration are performed using tools including:
 
 - Server Manager
 - Event Viewer
@@ -395,7 +568,14 @@ Tools used include:
 - `dcdiag`
 - `repadmin`
 - Event Viewer
+- Services
 - PowerShell
+
+Troubleshooting exercises will also demonstrate the differences between:
+
+- Domain Administrator responsibilities
+- Server Administrator responsibilities
+- Service Desk responsibilities
 
 ---
 
@@ -421,28 +601,90 @@ Later exercises include:
 - User reports
 - Administrative scripting
 
+Domain-wide PowerShell administration is performed using the Domain Administrator account.
+
+Server-level PowerShell administration can be performed by the Server Administrator on authorised member servers.
+
+---
+
+## Security Hardening
+
+The project includes security controls such as:
+
+- Separate standard and privileged accounts
+- Limited Domain Admin membership
+- Separation of domain and server administration
+- Delegated Service Desk permissions
+- Restricted RDP access
+- Account lockout policies
+- Password policies
+- Firewall rules
+- Least privilege
+- Auditing
+- Privileged group reviews
+
+### Privileged Group Model
+
+#### Domain Admins
+
+- `adm.anil.barot`
+
+#### GG-Server-Admins
+
+- `adm.anil.barot`
+- `adm.daniel.reed`
+
+#### GG-RDP-Servers
+
+- `adm.anil.barot`
+- `adm.daniel.reed`
+
+#### GG-ServiceDesk
+
+- `maya.patel`
+- `aaron.smith`
+
+---
+
+## User Lifecycle Administration
+
+The environment is used to simulate common IT support processes including:
+
+- New starters
+- Password resets
+- Account unlocks
+- Department transfers
+- Group membership changes
+- Access requests
+- Account disablement
+- Leavers and offboarding
+
+Routine lifecycle tasks are delegated to the Service Desk where appropriate.
+
+Higher-level administrative changes remain restricted to privileged accounts.
+
 ---
 
 ## Project Phases
 
-1. Azure foundation
-2. DC01 deployment
-3. Active Directory structure
-4. Administrative and Service Desk access
-5. DC02 deployment and replication
-6. DNS administration
-7. FS01 deployment
-8. File server storage
-9. CLIENT01 deployment
+1. Azure Foundation
+2. DC01 Deployment
+3. Active Directory Structure
+4. Administrative and Service Desk Access
+5. DC02 Deployment and Replication
+6. DNS Administration
+7. FS01 Deployment
+8. File Server Storage
+9. CLIENT01 Deployment
 10. Group Policy
-11. RDP and remote administration
-12. User lifecycle administration
-13. Backup and recovery
+11. RDP and Remote Administration
+12. User Lifecycle Administration
+13. Backup and Recovery
 14. Troubleshooting
-15. Monitoring and server health
-16. PowerShell administration
-17. Security hardening
-18. Final infrastructure documentation
+15. Monitoring and Server Health
+16. PowerShell Administration
+17. Security Hardening
+18. Final Infrastructure Documentation
 
 ---
 
@@ -453,7 +695,9 @@ Later exercises include:
 - Implement Active Directory Domain Services
 - Implement DNS
 - Create users, groups and organisational units
-- Separate standard and privileged administrator accounts
+- Separate standard and privileged accounts
+- Restrict Domain Admin membership
+- Separate domain administration from server administration
 - Delegate Service Desk permissions
 - Implement Domain Controller redundancy
 - Configure centralised file services
@@ -482,6 +726,7 @@ This project demonstrates hands-on experience with:
 - Security groups
 - Delegated administration
 - Least privilege
+- Role-based administration
 - Privileged administrator accounts
 - Windows File Server
 - SMB
@@ -499,4 +744,4 @@ This project demonstrates hands-on experience with:
 
 ## Documentation
 
-This repository documents the build process, configuration decisions, screenshots, troubleshooting exercises, commands and lessons learned throughout the implementation of the Obsidian Windows infrastructure environment.
+This repository documents the build process, configuration decisions, screenshots, commands, troubleshooting exercises and lessons learned throughout the implementation of the Obsidian Windows infrastructure environment.
